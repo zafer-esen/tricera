@@ -4,8 +4,8 @@ lazy val commonSettings = Seq(
     organization := "uuverifiers",
     version := "2.0",
     scalaVersion := "2.11.12",
-    crossScalaVersions := Seq("2.11.12", "2.12.8"),
-    publishTo := Some(Resolver.file("file",  new File( "/home/wv/public_html/maven/" )) )
+    crossScalaVersions := Seq("2.11.12", "2.12.8")//,
+//    publishTo := Some(Resolver.file("file",  new File( "/home/wv/public_html/maven/" )) )
 )
 
 // Jar files for the parsers
@@ -51,8 +51,12 @@ settings(
                                         case "2.11.12" => "-optimise"
                                         case "2.12.8" => "-opt:_"
                                       }}).value,
-  resolvers += "uuverifiers" at "http://logicrunch.research.it.uu.se/maven/",
-  libraryDependencies += "uuverifiers" %% "eldarica" % "2.0.5-heap",
-  libraryDependencies += "uuverifiers" %% "horn-concurrency" % "1.0"
+//  resolvers += "uuverifiers" at "http://logicrunch.research.it.uu.se/maven/",
+//  libraryDependencies += "uuverifiers" %% "eldarica" % "2.0.5-heap",
+//  libraryDependencies += "uuverifiers" %% "horn-concurrency" % "1.0"
 )
-  //
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
+//
