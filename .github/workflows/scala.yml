@@ -2,7 +2,7 @@ name: Scala CI
 
 on:
   push:
-    branches: [ master, extquans ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
