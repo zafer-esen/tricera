@@ -63,7 +63,8 @@ class TriCeraParameters extends GlobalParameters {
 
   var useArraysForHeap : Boolean = false
 
-  var onlyExtQuans : Boolean = false
+  var onlyExtGeneralQuans : Boolean = false
+  var extGeneralQuans : Boolean = false
 
   var devMode : Boolean = false
 
@@ -123,7 +124,8 @@ class TriCeraParameters extends GlobalParameters {
 
     case "-memtrack" :: rest => shouldTrackMemory = true; parseArgs(rest)
     case "-mathArrays" :: rest => useArraysForHeap = true; parseArgs(rest)
-    case "-onlyexq" :: rest => onlyExtQuans = true; parseArgs(rest)
+    case "-exq"     :: rest => extGeneralQuans = true; parseArgs(rest)
+    case "-onlyExq" :: rest => onlyExtGeneralQuans = true; parseArgs(rest)
 
     case "-abstract" :: rest => templateBasedInterpolation = true; parseArgs(rest)
     case "-abstractPO" :: rest => {
@@ -263,6 +265,8 @@ class TriCeraParameters extends GlobalParameters {
       " -v, --version\tPrint version number\n" +
       " -arithMode:t\tInteger semantics: math (default), ilp32, lp64, llp64\n" +
       " -mathArrays:t\tUse mathematical arrays for modeling program arrays (no implicit memory safety properties))\n" +
+      " -exq\t\tUse extended quantifier encoding for forall and exists when possible\n" +
+      " -onlyExq\tReport error if extended quantifier encoding cannot be used for all quantified formulas\n" +
       " -memtrack\tCheck that there are no memory leaks in the input program \n" +
       " -t:time\tSet timeout (in seconds)\n" +
       " -cex\t\tShow textual counterexamples\n" +

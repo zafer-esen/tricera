@@ -40,7 +40,6 @@ import lazabs.horn.abstractions.VerificationHints
 import lazabs.horn.abstractions.VerificationHints.{VerifHintElement, VerifHintInitPred, VerifHintTplElement, VerifHintTplEqTerm, VerifHintTplPred}
 import lazabs.horn.bottomup.HornClauses
 import IExpression.{ConstantTerm, Predicate, Sort, toFunApplier}
-import ap.theories.ADT.BoolADT
 import lazabs.horn.extendedquantifiers.ExtendedQuantifier
 
 import scala.collection.mutable.{ArrayBuffer, Buffer, Stack, HashMap => MHashMap, HashSet => MHashSet}
@@ -4042,7 +4041,7 @@ class CCReader private (prog : Program,
           try{translate(stm.annotation_, entry)}
           catch {
             case e : ExtendedQuantifierException => throw e
-            case e if TriCeraParameters.get.onlyExtQuans => throw e
+            case e if TriCeraParameters.get.onlyExtGeneralQuans => throw e
             case e : Exception =>
               warn("Ignoring ACSL annotation (possibly " +
                 "an error or an unsupported fragment):\n" + e.getMessage)
@@ -4104,11 +4103,12 @@ class CCReader private (prog : Program,
             "/*@" + annot + "*/", new LocalContext()) match {
             case res: tricera.acsl.StatementAnnotation =>
               import IExpression._
-//              println(tryGetQuantifiedFormulaInfo(res.f))
               if (res.isAssert) {
                 import lazabs.prover.PrincessWrapper._
                 tryGetQuantifiedFormulaInfo(res.f) match {
-                  case Some(info) =>
+                  case Some(info) if (info.quantifier == Quantifier.ALL ||
+                                     info.quantifier == Quantifier.EX) &&
+                                     TriCeraParameters.get.extGeneralQuans =>
                     val reduceOp: (ITerm, ITerm) => ITerm =
                       (a: ITerm, b: ITerm) => info.quantifier match { // a is the aggregate, b is the currently accessed value
                         case Quantifier.ALL =>
@@ -4166,7 +4166,12 @@ class CCReader private (prog : Program,
                       expr2Formula(extQuan.fun(info.arrayTerm, info.lo, info.hi)),
                       srcInfo = Some(getSourceInfo(stm))
                     )
-                  case None =>
+                  case Some(info) if !(info.quantifier == Quantifier.ALL ||
+                                       info.quantifier == Quantifier.EX) =>
+                    ???
+                  case _ =>
+                    // Cannot be encoded using extended quantifiers,
+                    // or a general quantifier but extGeneralQuans is false.
                     stmSymex.assertProperty(res.f, Some(getSourceInfo(stm)))
                 }
               } else
@@ -4260,6 +4265,7 @@ class CCReader private (prog : Program,
      *    (or forall int i; lo <= i < hi ==> predicate)
      *  2. EX  i. ...
      *    (or exists int i; lo <= i < hi & predicate)
+     *  TODO: extend/refactor this for other extended quantifiers.
      */
     private def tryGetQuantifiedFormulaInfo(f : IFormula) :
       Option[QuantifiedFormulaInfo] = {
@@ -4372,7 +4378,7 @@ class CCReader private (prog : Program,
             arrayIndex = select.args.last,
             arrayTheory = theory,
             originalF = f))
-        } else if (TriCeraParameters.get.onlyExtQuans) {
+        } else if (TriCeraParameters.get.onlyExtGeneralQuans) {
           throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
             "extended quantifier: " + f)
         }
@@ -4387,8 +4393,12 @@ class CCReader private (prog : Program,
                 case Disj(fRange, pred) =>
                   fRange match {
                     case INot(Conj(flo, fhi)) => extractInfo(flo, fhi, pred, quan)
-                    case _ => throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
-                      "extended quantifier: " + f)
+                    case _ if TriCeraParameters.get.extGeneralQuans &&
+                              TriCeraParameters.get.onlyExtGeneralQuans =>
+                      throw new ExtendedQuantifierException(
+                        "Could not encode general quantifier as an extended" +
+                          "quantifier: " + f)
+                    case _ => None
                   }
                 case _ => None
               }
@@ -4397,8 +4407,12 @@ class CCReader private (prog : Program,
                 case Conj(fRange, pred) =>
                   fRange match {
                     case Conj(flo, fhi) => extractInfo(flo, fhi, pred, quan)
-                    case _ => throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
-                      "extended quantifier: " + f)
+                    case _ if TriCeraParameters.get.extGeneralQuans &&
+                              TriCeraParameters.get.onlyExtGeneralQuans =>
+                      throw new ExtendedQuantifierException(
+                        "Could not encode general quantifier as an extended" +
+                          "quantifier: " + f)
+                    case _ => None
                   }
                 case _ => None
               }
