@@ -3328,7 +3328,7 @@ class CCReader private (prog : Program,
             arrayTerm.toTerm, loTerm.toTerm, hiTerm.toTerm),
             arrayType.elementType, srcInfo))
 
-        case name => {
+        case name =>
           // then we inline the called function
 
           // evaluate the arguments
@@ -3504,7 +3504,7 @@ class CCReader private (prog : Program,
                 ts.type_specifier_ match {
                   case _ : Tint => //TODO: check what size should be int, now assumes sizeof(int) is 4
                     pushVal(CCTerm(IExpression.i(IdealInt("4")), CCInt,
-                      Some(SourceInfo(exp.line_num, exp.col_num, exp.offset))))
+                      Some(getSourceInfo(exp))))
                   case _ => // Only int supported for now
                     throw new TranslationException(getLineString(exp) +
                       "Only int byteexprs currently supported by TriCera: " +
