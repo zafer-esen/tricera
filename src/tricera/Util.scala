@@ -45,7 +45,7 @@ object Util {
   def warn(msg : String) : Unit =
     Console.err.println("Warning: " + msg)
 
-  case class SourceInfo (line : Int, col : Int, offset : Int)
+  case class SourceInfo (line : Int, col : Int)
 
   private def getIntegerField(obj: Any, fieldName: String): Int = {
     val field =obj.getClass.getDeclaredField(fieldName)
@@ -55,8 +55,7 @@ object Util {
     try {
       val line = getIntegerField(obj, "line_num")
       val col = getIntegerField(obj, "col_num")
-      val offset = getIntegerField(obj, "offset")
-      SourceInfo(line, col, offset)
+      SourceInfo(line, col)
     } catch {
       case _ : Throwable => throw new Exception("Could not extract line number from " +
         obj.getClass)
@@ -122,7 +121,7 @@ object Util {
   def getLineString(maybeSourceInfo : Option[SourceInfo]) : String = {
     maybeSourceInfo match {
       case Some(sourceInfo) =>
-        "At line " + sourceInfo.line + " (offset " + sourceInfo.offset + "): "
+        s"At ${sourceInfo.line}:${sourceInfo.col}: "
       case None => ""
     }
   }

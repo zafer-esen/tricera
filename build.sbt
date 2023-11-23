@@ -15,16 +15,12 @@ lazy val commonSettings = Seq(
     useCoursier          := false
 )
 
-// Jar files for the parsers
-
 lazy val parserSettings = Seq(
     publishArtifact in packageDoc := false,
     publishArtifact in packageSrc := false,
     exportJars := true,
     crossPaths := true
 )
-
-// Parser generation
 
 lazy val ccParser = (project in file("cc-parser")).
   settings(commonSettings: _*).
