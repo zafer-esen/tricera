@@ -5,7 +5,7 @@ extern int __VERIFIER_nondet_int();
 int main() {
   
   int N = __VERIFIER_nondet_int();
-  __VERIFIER_assume(N > 0);
+  assume(N > 0);
   
 
   int arr[N];

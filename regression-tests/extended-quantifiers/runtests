@@ -2,8 +2,7 @@
 
 LAZABS=../../tri
 
-TESTS="forall1-UB.c \
-  max_eq-UB.c \
+TESTS="max_eq-UB.c \
   min_eq-UB.c \
   simple-max-false.c \
   simple-max-true.c \

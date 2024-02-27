@@ -11,8 +11,8 @@ lazy val commonSettings = Seq(
     description          := "TriCera is a model checker for C programs.",
     scalaVersion         := "2.11.12",
     crossScalaVersions   := Seq("2.11.12", "2.12.8"),
-    publishTo            := Some(Resolver.file("file",  new File( "/home/wv/public_html/maven/" )) ),
-    useCoursier          := false
+    publishTo            := Some(Resolver.file("file",  new File( "/home/wv/public_html/maven/" )) )
+    //useCoursier          := false
 )
 
 lazy val parserSettings = Seq(
@@ -42,7 +42,7 @@ lazy val acslParser = (project in file("acsl-parser")).
 
 lazy val pp = taskKey[Unit]("")
 pp := {
-  val f = url("https://github.com/zafer-esen/tri-pp/releases/download/v0.1.2/tri-pp")
+  val f = url("https://github.com/zafer-esen/tri-pp/releases/download/v0.1.3/tri-pp")
   f #> file("tri-pp") !
 }
 def addExecutePermissions(file : File) {
@@ -96,22 +96,22 @@ settings(
                                         case "2.11.12" => "-optimise"
                                         case "2.12.8" => "-opt:_"
                                       }}).value,
-  resolvers += ("uuverifiers" at "http://logicrunch.research.it.uu.se/maven/").withAllowInsecureProtocol(true),
+//  resolvers += "uuverifiers" at "https://eldarica.org/maven/",
 
 // jitpack resolver should be removed before merge into master.
   resolvers += "jitpack" at "https://jitpack.io",
 
 // Uncomment the following two dependencies if you publishLocal Eldarica
 // and horn-concurrency, but do not push this change to the repo.
-//  libraryDependencies += "uuverifiers" %% "horn-concurrency" % "1.1-ext",
-//  libraryDependencies += "uuverifiers" %% "eldarica" % "2.0.9-ext" exclude(
-//    "net.sf.squirrel-sql.thirdparty-non-maven","java-cup"),
+  libraryDependencies += "uuverifiers" %% "horn-concurrency" % "1.1-ext",
+  libraryDependencies += "uuverifiers" %% "eldarica" % "2.0.9-ext" exclude(
+    "net.sf.squirrel-sql.thirdparty-non-maven","java-cup"),
 
 // Comment the following two dependencies if you publishLocal Eldarica
 // and horn-concurrency, but do not push this change to the repo.
-  libraryDependencies += "com.github.uuverifiers" % "horn-concurrency" % "extquans-SNAPSHOT",
-  libraryDependencies += "com.github.zafer-esen" % "eldarica" % "master-SNAPSHOT" exclude(
-    "net.sf.squirrel-sql.thirdparty-non-maven","java-cup"),
+  // libraryDependencies += "com.github.uuverifiers" % "horn-concurrency" % "extquans-SNAPSHOT",
+  // libraryDependencies += "com.github.zafer-esen" % "eldarica" % "master-SNAPSHOT" exclude(
+    //  "net.sf.squirrel-sql.thirdparty-non-maven","java-cup"),
 
   libraryDependencies += "net.jcazevedo" %% "moultingyaml" % "0.4.2",
   libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.12",

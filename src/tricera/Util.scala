@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 Zafer Esen, Philipp Ruemmer. All rights reserved.
+ * Copyright (c) 2021-2024 Zafer Esen, Philipp Ruemmer. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -118,10 +118,13 @@ object Util {
     getLineString(Some(sourceInfo))
   }
 
-  def getLineString(maybeSourceInfo : Option[SourceInfo]) : String = {
+  def getLineString(maybeSourceInfo : Option[SourceInfo]) : String =
+    s"At (${getLineStringShort(maybeSourceInfo)})): "
+
+  def getLineStringShort(maybeSourceInfo : Option[SourceInfo]) : String = {
     maybeSourceInfo match {
       case Some(sourceInfo) =>
-        s"At ${sourceInfo.line}:${sourceInfo.col}: "
+        s"${sourceInfo.line}:${sourceInfo.col}"
       case None => ""
     }
   }
