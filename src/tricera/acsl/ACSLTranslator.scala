@@ -484,7 +484,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
         case neq : AST.EMult =>
           val lhs : ITerm = translateTerm(neq.expr_1).toTerm
           val rhs : ITerm = translateTerm(neq.expr_2).toTerm
-          lhs * rhs
+          multSimplify(lhs, rhs)
         case neq : AST.EDiv  =>
           val lhs : ITerm = translateTerm(neq.expr_1).toTerm
           val rhs : ITerm = translateTerm(neq.expr_2).toTerm
