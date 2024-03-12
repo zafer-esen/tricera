@@ -665,7 +665,7 @@ class Main (args: Array[String]) {
       //       contract function + there is an extended quantifier assertion
       case Right((_, lazabs.horn.bottomup.Util.DagEmpty))
         if smallSystem.assertions.flatMap(_.theories).exists(
-          _.isInstanceOf[ExtendedQuantifier]) =>
+          _.isInstanceOf[AbstractExtendedQuantifier]) =>
         Unknown("extended quantifiers")
       case Right(cex) => {
         if(runStats.usedExtendedQuantifiers) {
