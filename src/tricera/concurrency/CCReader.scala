@@ -4527,8 +4527,15 @@ private def collectVarDecls(dec                    : Dec,
                             // true for the smaller range
                       }))
                     TheoryRegistry register extQuan
+                    val doNotResetWithinBoundsCondition = info.quantifier match {
+                      case Quantifier.ALL =>
+                        Some((a: ITerm) => expr2Formula(a))
+                      case Quantifier.EX =>
+                        Some((a: ITerm) => !expr2Formula(a))
+                    }
                     extendedQuantifierToInstrumentationOperator +=
-                      extQuan -> new BooleanInstrumentationOperator(extQuan)
+                      extQuan -> new BooleanInstrumentationOperator(
+                        extQuan, doNotResetWithinBoundsCondition)
                     val morphismApp = IFunApp(extQuan.morphism,
                       Seq(info.arrayTerm, info.lo, info.hi) ++ info.alienTerms)
                     stmSymex.assertProperty(

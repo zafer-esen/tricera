@@ -34,7 +34,6 @@ import ap.parser.IExpression.{ConstantTerm, Predicate}
 import ap.parser.{IAtom, IConstant, IFormula, VariableSubstVisitor}
 import hornconcurrency.ParametricEncoder
 import lazabs.horn.extendedquantifiers.theories._
-import lazabs.horn.extendedquantifiers.instrumentationoperators._
 
 import java.io.{FileOutputStream, PrintStream}
 import java.nio.file.{Files, Paths}
@@ -521,7 +520,7 @@ class Main (args: Array[String]) {
 
     val executionResult : ExecutionResult = result match {
       case Left(res) =>
-        if (log && runStats.usedExtendedQuantifiers) {
+        if (runStats.usedExtendedQuantifiers) {
           print("Search space sizes: ")
           println(runStats.extendedQuantifierSearchSpaceSizes.toSeq.
             sortBy(_._1).mkString(","))
