@@ -4750,7 +4750,8 @@ private def collectVarDecls(dec                    : Dec,
           val lo = maybeLo.get
           val hi = maybeHi.get
           val Seq(arrayTerm, arrayIndex) = select.args
-          val alienTerms = SymbolCollector.constantsSorted(f) diff select.args
+          val alienTerms =
+            SymbolCollector.constantsSorted(pred).map(IConstant) diff select.args
           Some(QuantifiedFormulaInfo(
             quantifier = quan,
             arrayTerm = arrayTerm,
