@@ -189,7 +189,7 @@ abstract sealed class CCType {
         " Casts between pointer and arithmetic types are not supported.")
     }
     e match {
-      case CCTerm(t, _, srcInfo, _)    => CCTerm(cast(t), this, srcInfo)
+      case CCTerm(t, _, srcInfo)    => CCTerm(cast(t), this, srcInfo)
       case CCFormula(f, _, srcInfo) => CCFormula(f, this, srcInfo)
     }
   }

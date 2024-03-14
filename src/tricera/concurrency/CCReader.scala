@@ -318,7 +318,7 @@ class CCReader private (prog              : Program,
                     })
 
   private def freeFromGlobal(t : CCExpr) : Boolean = t match {
-    case CCTerm(s, _, _, _) =>    freeFromGlobal(s)
+    case CCTerm(s, _, _) =>    freeFromGlobal(s)
     case CCFormula(f, _, _) => freeFromGlobal(f)
   }
 
@@ -1578,7 +1578,7 @@ private def collectVarDecls(dec                    : Dec,
                         values.eval(expr.asInstanceOf[Especial].exp_)(
                           values.EvalSettings(), values.EvalContext())
                       val arraySize = arraySizeTerm match {
-                        case CCTerm(IIntLit(IdealInt(n)), actualType, srcInfo, _)
+                        case CCTerm(IIntLit(IdealInt(n)), actualType, srcInfo)
                           if actualType.isInstanceOf[CCArithType] => n
                         case _ => throw new TranslationException(
                           "Array with non-integer" +
@@ -1885,7 +1885,7 @@ private def collectVarDecls(dec                    : Dec,
                 evalSettings, evalContext
               )
               val arraySize = arraySizeExp match {
-                case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo, _)
+                case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo)
                   if typ.isInstanceOf[CCArithType] => n
                 case _ => throw new TranslationException("Array with non-integer" +
                   "size specified inside struct definition!")
@@ -3017,11 +3017,11 @@ private def collectVarDecls(dec                    : Dec,
           } else {
             val lhsName = asLValue(exp.exp_1)
             val actualRhsVal = rhsVal match {
-              case CCTerm(_, stackPtr@CCStackPointer(_,_,_), srcInfo, _) =>
+              case CCTerm(_, stackPtr@CCStackPointer(_,_,_), srcInfo) =>
                 throw new UnsupportedCFragmentException(
                   getLineStringShort(srcInfo) +
                   " Only limited support for stack pointers")
-              case CCTerm(IIntLit(value), _, _, _) =>
+              case CCTerm(IIntLit(value), _, _) =>
                 if (value.intValue != 0) {
                   throw new TranslationException("Pointer arithmetic is not " +
                     "allowed, and the only assignable integer value for " +
@@ -3494,7 +3494,7 @@ private def collectVarDecls(dec                    : Dec,
           }, typ, srcInfo)
 
           allocSize match {
-            case CCTerm(IIntLit(IdealInt(1)), typ, srcInfo, _)
+            case CCTerm(IIntLit(IdealInt(1)), typ, srcInfo)
               if typ.isInstanceOf[CCArithType] && !evalCtx.lhsIsArrayPointer
                  && arrayLoc == ArrayLocation.Heap =>
               /**
@@ -3528,7 +3528,7 @@ private def collectVarDecls(dec                    : Dec,
               }
 
               pushVal(allocatedAddr)
-            case CCTerm(sizeExp, typ, srcInfo, _) if typ.isInstanceOf[CCArithType] =>
+            case CCTerm(sizeExp, typ, srcInfo) if typ.isInstanceOf[CCArithType] =>
               val addressRangeValue = heapBatchAlloc(objectTerm, sizeExp)
               val allocatedBlock =
                 CCTerm(addressRangeValue,
@@ -3589,7 +3589,7 @@ private def collectVarDecls(dec                    : Dec,
           }
 
           val (sizeExpr, sizeInt) = allocSize match {
-            case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo, _)
+            case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo)
               if typ.isInstanceOf[CCArithType] && !evalCtx.lhsIsArrayPointer =>
               (Some(allocSize), Some(n))
             case _ =>

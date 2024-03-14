@@ -576,7 +576,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     val srcInfo = Some(getSourceInfo(expr))
 
     (cond, left, right) match {
-      case (c@CCTerm(_,_,_,_), l@CCTerm(_,lType,_,_), r@CCTerm(_,rType,_,_)) =>
+      case (c@CCTerm(_,_,_), l@CCTerm(_,lType,_), r@CCTerm(_,rType,_)) =>
         if (lType != rType) {
           // TODO: support implicit type casts.
           throw new ACSLParseException(
@@ -585,7 +585,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
         }
         CCTerm(ITermITE(cond.toFormula, left.toTerm, right.toTerm),
                lType, srcInfo)
-      case (c@CCTerm(_, _, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
+      case (c@CCTerm(_, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
         CCFormula(IFormulaITE(c.toFormula, l.toFormula, right.toFormula),
                   CCBool, srcInfo)
       case (c@CCFormula(_, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
