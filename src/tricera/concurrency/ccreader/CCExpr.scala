@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 Zafer Esen, Philipp Ruemmer. All rights reserved.
+ * Copyright (c) 2024 Zafer Esen, Philipp Ruemmer. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,7 +29,7 @@
 
 package tricera.concurrency.ccreader
 
-import ap.parser.{IBoolLit, IExpression, IFormula, IIntLit, ITerm, SymbolCollector}
+import ap.parser.{IBoolLit, IEpsilon, IExpression, IFormula, IIntLit, ITerm, SymbolCollector}
 import tricera.Util.SourceInfo
 import CCExceptions._
 import ap.parser.IExpression._

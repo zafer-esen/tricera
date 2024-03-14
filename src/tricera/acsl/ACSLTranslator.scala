@@ -150,8 +150,8 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     val srcInfo = getSourceInfo(assertAnnotation)
     assertAnnotation match {
       case regularAssertion : AST.RegularAssertion =>
-            val f = translate(regularAssertion.expr_)
-            StatementAnnotation(f.toFormula, isAssert = true)
+            val f = translate(regularAssertion.expr_).asInstanceOf[CCFormula]
+            StatementAnnotation(f, isAssert = true)
       case _ =>
         throw new ACSLParseException("Behaviour assertions are " +
           "currently unsupported.", srcInfo)
@@ -164,8 +164,8 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
   : LoopAnnotation = {
     loopInvariantAnnotation match {
       case inv : AST.LoopInvSimple =>
-        val f = translate(inv.expr_)
-        LoopAnnotation(f.toFormula)
+        val f = translate(inv.expr_).asInstanceOf[CCFormula]
+        LoopAnnotation(f)
     }
   }
 
@@ -372,6 +372,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     case e : AST.ENaming2  => ???
     case _ :   AST.EForAll
          | _ : AST.EExists => translateQuantified(expr)
+    case e : AST.ENumOf    => translateNumOf(e)
     case e : AST.EBinding  => ???
     case e : AST.ETernary  => translateTernary(e)
     case _ :   AST.EEquiv
@@ -417,7 +418,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     import ap.basetypes.IdealInt
     val srcInfo = Some(getSourceInfo(lit))
     lit match {
-      case t : AST.LitTrue  =>CCFormula(IBoolLit(true), CCBool, srcInfo)
+      case t : AST.LitTrue  => CCFormula(IBoolLit(true), CCBool, srcInfo)
       case t : AST.LitFalse => CCFormula(IBoolLit(false), CCBool, srcInfo)
       case t : AST.LitInt =>
         CCTerm(i(IdealInt(t.unboundedinteger_)), CCInt, srcInfo)
@@ -523,7 +524,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     val t = translate(expr)
     t match {
       case term : CCTerm => term
-      case _                =>
+      case _             =>
         throw new ACSLParseException(
           "Expected a term, but got " + (printer print expr), srcInfo)
     }
@@ -575,7 +576,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     val srcInfo = Some(getSourceInfo(expr))
 
     (cond, left, right) match {
-      case (c@CCTerm(_, _, _), l@CCTerm(_,lType,_), r@CCTerm(_,rType,_)) =>
+      case (c@CCTerm(_,_,_,_), l@CCTerm(_,lType,_,_), r@CCTerm(_,rType,_,_)) =>
         if (lType != rType) {
           // TODO: support implicit type casts.
           throw new ACSLParseException(
@@ -584,7 +585,7 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
         }
         CCTerm(ITermITE(cond.toFormula, left.toTerm, right.toTerm),
                lType, srcInfo)
-      case (c@CCTerm(_, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
+      case (c@CCTerm(_, _, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
         CCFormula(IFormulaITE(c.toFormula, l.toFormula, right.toFormula),
                   CCBool, srcInfo)
       case (c@CCFormula(_, _, _), l@CCFormula(_,_,_), r@CCFormula(_,_,_)) =>
@@ -646,7 +647,20 @@ class ACSLTranslator(ctx : ACSLTranslator.AnnotationContext) {
     CCFormula(terms.foldLeft(inner.toFormula)((formula, term) => {
         val sort : Sort = term.typ.toSort
         ISortedQuantified(quantifier, sort, formula)
-    }), CCBool, Some(getSourceInfo(pred)))
+    }), CCBool, Some(srcInfo))
+  }
+
+  def translateNumOf(expr: AST.ENumOf) : CCTerm = {
+    val srcInfo = getSourceInfo(expr)
+    val (binders, bodyExpr) = (expr.listbinder_, expr.expr_)
+    val namedTerms : Seq[(String, CCTerm)] = bindersToConstants(binders)
+    namedTerms.map(t => locals.put(t._1, t._2))
+    val inner: CCFormula = translatePred(bodyExpr)
+    val (names, terms): (Seq[String], Seq[CCTerm]) = namedTerms.unzip
+    // FIXME: If v is shadowed, this will remove the shadowed term.
+    names.map(locals.remove)
+    CCTerm(ap.theories.ExtArray.Lambda(
+      terms.map(_.typ.toSort), Sort.Integer, inner.toTerm), CCInt, Some(srcInfo))
   }
 
 //  def translate(pred: AST.PredExists): IFormula = {

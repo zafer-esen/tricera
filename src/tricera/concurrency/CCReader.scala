@@ -318,7 +318,7 @@ class CCReader private (prog              : Program,
                     })
 
   private def freeFromGlobal(t : CCExpr) : Boolean = t match {
-    case CCTerm(s, _, _) =>    freeFromGlobal(s)
+    case CCTerm(s, _, _, _) =>    freeFromGlobal(s)
     case CCFormula(f, _, _) => freeFromGlobal(f)
   }
 
@@ -1578,7 +1578,7 @@ private def collectVarDecls(dec                    : Dec,
                         values.eval(expr.asInstanceOf[Especial].exp_)(
                           values.EvalSettings(), values.EvalContext())
                       val arraySize = arraySizeTerm match {
-                        case CCTerm(IIntLit(IdealInt(n)), actualType, srcInfo)
+                        case CCTerm(IIntLit(IdealInt(n)), actualType, srcInfo, _)
                           if actualType.isInstanceOf[CCArithType] => n
                         case _ => throw new TranslationException(
                           "Array with non-integer" +
@@ -1885,7 +1885,7 @@ private def collectVarDecls(dec                    : Dec,
                 evalSettings, evalContext
               )
               val arraySize = arraySizeExp match {
-                case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo)
+                case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo, _)
                   if typ.isInstanceOf[CCArithType] => n
                 case _ => throw new TranslationException("Array with non-integer" +
                   "size specified inside struct definition!")
@@ -3017,11 +3017,11 @@ private def collectVarDecls(dec                    : Dec,
           } else {
             val lhsName = asLValue(exp.exp_1)
             val actualRhsVal = rhsVal match {
-              case CCTerm(_, stackPtr@CCStackPointer(_,_,_), srcInfo) =>
+              case CCTerm(_, stackPtr@CCStackPointer(_,_,_), srcInfo, _) =>
                 throw new UnsupportedCFragmentException(
                   getLineStringShort(srcInfo) +
                   " Only limited support for stack pointers")
-              case CCTerm(IIntLit(value), _, _) =>
+              case CCTerm(IIntLit(value), _, _, _) =>
                 if (value.intValue != 0) {
                   throw new TranslationException("Pointer arithmetic is not " +
                     "allowed, and the only assignable integer value for " +
@@ -3415,9 +3415,9 @@ private def collectVarDecls(dec                    : Dec,
                 val formula = interpPredDefs(printer print interpPred.exp_)
                 // the formula refers to pred arguments as IVariable(index)
                 // we need to subsitute those for the actual arguments
-                VariableSubstVisitor(formula.f, (args.toList, 0))
+                VariableSubstVisitor(formula.toFormula, (args.toList, 0))
               case _ =>
-                atomicEvalFormula(exp.listexp_.head, evalCtx).f
+                atomicEvalFormula(exp.listexp_.head, evalCtx).toFormula
             }
             assertProperty(property, srcInfo, properties.UserAssertion)
             pushVal(CCFormula(true, CCInt, srcInfo))
@@ -3436,9 +3436,9 @@ private def collectVarDecls(dec                    : Dec,
               val formula = interpPredDefs(printer print interpPred.exp_)
               // the formula refers to pred arguments as IVariable(index)
               // we need to subsitute those for the actual arguments
-              VariableSubstVisitor(formula.f, (args.toList, 0))
+              VariableSubstVisitor(formula.toFormula, (args.toList, 0))
             case _ =>
-              atomicEvalFormula(exp.listexp_.head, evalCtx).f
+              atomicEvalFormula(exp.listexp_.head, evalCtx).toFormula
           }
           addGuard(property)
           pushVal(CCFormula(true, CCInt, srcInfo))
@@ -3494,7 +3494,7 @@ private def collectVarDecls(dec                    : Dec,
           }, typ, srcInfo)
 
           allocSize match {
-            case CCTerm(IIntLit(IdealInt(1)), typ, srcInfo)
+            case CCTerm(IIntLit(IdealInt(1)), typ, srcInfo, _)
               if typ.isInstanceOf[CCArithType] && !evalCtx.lhsIsArrayPointer
                  && arrayLoc == ArrayLocation.Heap =>
               /**
@@ -3528,7 +3528,7 @@ private def collectVarDecls(dec                    : Dec,
               }
 
               pushVal(allocatedAddr)
-            case CCTerm(sizeExp, typ, srcInfo) if typ.isInstanceOf[CCArithType] =>
+            case CCTerm(sizeExp, typ, srcInfo, _) if typ.isInstanceOf[CCArithType] =>
               val addressRangeValue = heapBatchAlloc(objectTerm, sizeExp)
               val allocatedBlock =
                 CCTerm(addressRangeValue,
@@ -3589,7 +3589,7 @@ private def collectVarDecls(dec                    : Dec,
           }
 
           val (sizeExpr, sizeInt) = allocSize match {
-            case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo)
+            case CCTerm(IIntLit(IdealInt(n)), typ, srcInfo, _)
               if typ.isInstanceOf[CCArithType] && !evalCtx.lhsIsArrayPointer =>
               (Some(allocSize), Some(n))
             case _ =>
@@ -4471,15 +4471,15 @@ private def collectVarDecls(dec                    : Dec,
               if (res.isAssert) {
                 import lazabs.prover.PrincessWrapper._
                 tryGetQuantifiedFormulaInfo(res.f) match {
-                  case Some(info) if (info.quantifier == Quantifier.ALL ||
-                                     info.quantifier == Quantifier.EX) &&
+                  case Some(info) if (info.quantifier == CCALL ||
+                                     info.quantifier == CCEX) &&
                                      TriCeraParameters.get.extGeneralQuans =>
                     val reduceOp: (ITerm, ITerm) => ITerm =
                       (a: ITerm, b: ITerm) => info.quantifier match { // a is the aggregate, b is the currently accessed value
-                        case Quantifier.ALL =>
+                        case CCALL =>
                           expr2Term(expr2Formula(a) &&& expr2Formula(b))
                           //ite(expr2Formula(a), b, a) // if a is true, b must be true too
-                        case Quantifier.EX =>
+                        case CCEX =>
                           expr2Term(expr2Formula(a) ||| expr2Formula(b))
                           //ite(expr2Formula(a), a, b) // if a is true, b is ignored, otherwise take b
                       }
@@ -4495,33 +4495,33 @@ private def collectVarDecls(dec                    : Dec,
                       }
                     val extQuan = new ExtendedQuantifierWithPredicate(
                       name = info.quantifier match {
-                        case Quantifier.ALL => "\\forall"
-                        case Quantifier.EX => "\\exists"
+                        case CCALL => "\\forall"
+                        case CCEX => "\\exists"
                       },
                       arrayTheory = info.arrayTheory,
                       identity = info.quantifier match {
-                        case Quantifier.ALL => expr2Term(IBoolLit(true))
-                        case Quantifier.EX => expr2Term(IBoolLit(false))
+                        case CCALL => expr2Term(IBoolLit(true))
+                        case CCEX  => expr2Term(IBoolLit(false))
                       },
                       reduceOp = reduceOp,
                       invReduceOp = None,
                       predicate = predicate,
                       rangeFormulaLo = Some(info.quantifier match {
-                        case Quantifier.ALL =>
+                        case CCALL =>
                           (ghostLo: ITerm, lo: ITerm, p : ITerm) =>
                             ite(expr2Formula(p), ghostLo <= lo, ghostLo >= lo)
                         // true for the larger range
-                        case Quantifier.EX =>
+                        case CCEX =>
                           (ghostLo: ITerm, lo: ITerm, p : ITerm) =>
                             ite(expr2Formula(p), ghostLo >= lo, ghostLo <= lo)
                         // true for the smaller range
                       }),
                       rangeFormulaHi = Some(info.quantifier match {
-                        case Quantifier.ALL =>
+                        case CCALL =>
                           (ghostHi: ITerm, hi: ITerm, p : ITerm) =>
                             ite(expr2Formula(p), ghostHi >= hi, ghostHi <= hi)
                              // true for the larger range
-                        case Quantifier.EX =>
+                        case CCEX =>
                           (ghostHi: ITerm, hi: ITerm, p : ITerm) =>
                             ite(expr2Formula(p), ghostHi <= hi, ghostHi >= hi)
                             // true for the smaller range
@@ -4529,9 +4529,9 @@ private def collectVarDecls(dec                    : Dec,
                       alienConstants = info.alienConstants.map(_.c))
                     TheoryRegistry register extQuan
                     val doNotResetWithinBoundsCondition = info.quantifier match {
-                      case Quantifier.ALL =>
+                      case CCALL =>
                         Some((a: ITerm) => expr2Formula(a))
-                      case Quantifier.EX =>
+                      case CCEX =>
                         Some((a: ITerm) => !expr2Formula(a))
                     }
                     extendedQuantifierToInstrumentationOperator +=
@@ -4543,13 +4543,49 @@ private def collectVarDecls(dec                    : Dec,
                       expr2Formula(morphismApp),
                       srcInfo = Some(getSourceInfo(stm)),
                       properties.Reachability)
-                  case Some(info) if !(info.quantifier == Quantifier.ALL ||
-                                       info.quantifier == Quantifier.EX) =>
+                  case Some(info) if info.quantifier == CCNUMOF =>
+                    val reduceOp: (ITerm, ITerm) => ITerm =
+                      (a: ITerm, b: ITerm) => ite(expr2Formula(b), a +++ 1, a)
+                    val predicate: (ITerm, ITerm) => ITerm = // todo: this does not work for cases where other program variables are referred in the predicate
+                      (access: ITerm, index: ITerm) => {
+                        // replace the term a[i] with the value being read/written
+                        expr2Term(
+                          ExpressionReplacingVisitor( // then replace any references to the bound variable with the index term
+                            ExpressionReplacingVisitor( // first replace the array access term
+                              info.predicate, info.arrayAccess, access),
+                            info.arrayIndex, index))
+                      }
+                    val extQuan = new ExtendedQuantifierWithPredicate(
+                      name = "\\numof",
+                      arrayTheory = info.arrayTheory,
+                      identity = 0, //expr2Term(IBoolLit(false)),
+                      reduceOp = reduceOp,
+                      invReduceOp = None,
+                      predicate = predicate,
+                      rangeFormulaLo = Some((ghostLo: ITerm, lo: ITerm, p: ITerm) =>
+                        ite(expr2Formula(p), ghostLo <= lo, ghostLo >=
+                          lo)),
+                      rangeFormulaHi = Some((ghostHi: ITerm, hi: ITerm, p: ITerm) =>
+                        ite(expr2Formula(p), ghostHi >= hi, ghostHi <= hi)),
+                      alienConstants = info.alienConstants.map(_.c))
+                    TheoryRegistry register extQuan
+                    extendedQuantifierToInstrumentationOperator +=
+                      extQuan ->
+                        new BooleanInstrumentationOperator(extQuan, None)
+                    val morphismApp = IFunApp(extQuan.morphism,
+                      Seq(info.arrayTerm, info.lo, info.hi) ++ info.alienConstants)
+                    stmSymex.assertProperty(
+                      morphismApp === info.rhs.get,
+                      srcInfo = Some(getSourceInfo(stm)),
+                      properties.Reachability)
+                  case Some(info) if !(info.quantifier == CCALL ||
+                                       info.quantifier == CCEX ||
+                                       info.quantifier == CCNUMOF) =>
                     ???
                   case _ =>
                     // Cannot be encoded using extended quantifiers,
                     // or a general quantifier but extGeneralQuans is false.
-                    stmSymex.assertProperty(res.f, Some(getSourceInfo(stm)),
+                    stmSymex.assertProperty(res.f.f, Some(getSourceInfo(stm)),
                       properties.Reachability)
                 }
               } else
@@ -4627,7 +4663,11 @@ private def collectVarDecls(dec                    : Dec,
       }
     }
 
-    private case class QuantifiedFormulaInfo(quantifier : IExpression.Quantifier,
+    private trait CCQuantifier
+    private object CCALL   extends CCQuantifier
+    private object CCEX    extends CCQuantifier
+    private object CCNUMOF extends CCQuantifier
+    private case class QuantifiedFormulaInfo(quantifier : CCQuantifier,
                                              lo : ITerm, // inclusive
                                              hi : ITerm, // exclusive
                                              arrayTerm : ITerm,
@@ -4636,7 +4676,8 @@ private def collectVarDecls(dec                    : Dec,
                                              arrayIndex : ITerm,
                                              arrayTheory : ExtArray,
                                              alienConstants : Seq[IConstant],
-                                             originalF : IFormula)
+                                             rhs : Option[ITerm], // only used when this is \\numof
+                                             originalF : CCFormula)
     /**
      * Given a quantified formula, tries to extract ranges and the predicate.
      * This is very basic and only extracts when the quantified formula is in
@@ -4645,16 +4686,20 @@ private def collectVarDecls(dec                    : Dec,
      *    (or forall int i; lo <= i < hi ==> predicate)
      *  2. EX  i. ...
      *    (or exists int i; lo <= i < hi & predicate)
+     *  3.     (numof int i; lo <= i < hi & predicate) = RHS
+     *  (LHS is stored as a lambda term using [[ap.theories.ExtArray.Lambda]])
+     *
      *  TODO: extend/refactor this for other extended quantifiers.
      */
-    private def tryGetQuantifiedFormulaInfo(f : IFormula) :
+    private def tryGetQuantifiedFormulaInfo(f : CCFormula) :
       Option[QuantifiedFormulaInfo] = {
       import IExpression._
 
       def extractInfo(flo: IFormula,
                       fhi: IFormula,
                       pred: IFormula,
-                      quan: IExpression.Quantifier):
+                      quan: CCQuantifier,
+                      rhs : Option[ITerm] = None) : // rhs of numof, optional
       Option[QuantifiedFormulaInfo] = {
         // try to extract the lo term
         val maybeLo = flo match {
@@ -4763,7 +4808,8 @@ private def collectVarDecls(dec                    : Dec,
             arrayIndex = arrayIndex,
             arrayTheory = theory,
             alienConstants = alienConstants,
-            originalF = f))
+            originalF = f,
+            rhs = rhs)) // todo
         } else if (TriCeraParameters.get.onlyExtGeneralQuans) {
           throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
             "extended quantifier: " + f)
@@ -4771,16 +4817,16 @@ private def collectVarDecls(dec                    : Dec,
           else None
       }
 
-      f match {
-        case IQuantified(quan, subf) =>
+      f.toFormula match {
+        case IQuantified(quan, subf) => {
           quan match {
             case Quantifier.ALL =>
               subf match {
                 case Disj(fRange, pred) =>
                   fRange match {
-                    case INot(Conj(flo, fhi)) => extractInfo(flo, fhi, pred, quan)
+                    case INot(Conj(flo, fhi)) => extractInfo(flo, fhi, pred, CCALL)
                     case _ if TriCeraParameters.get.extGeneralQuans &&
-                              TriCeraParameters.get.onlyExtGeneralQuans =>
+                      TriCeraParameters.get.onlyExtGeneralQuans =>
                       throw new ExtendedQuantifierException(
                         "Could not encode general quantifier as an extended" +
                           "quantifier: " + f)
@@ -4792,9 +4838,9 @@ private def collectVarDecls(dec                    : Dec,
               subf match {
                 case Conj(fRange, pred) =>
                   fRange match {
-                    case Conj(flo, fhi) => extractInfo(flo, fhi, pred, quan)
+                    case Conj(flo, fhi) => extractInfo(flo, fhi, pred, CCEX)
                     case _ if TriCeraParameters.get.extGeneralQuans &&
-                              TriCeraParameters.get.onlyExtGeneralQuans =>
+                      TriCeraParameters.get.onlyExtGeneralQuans =>
                       throw new ExtendedQuantifierException(
                         "Could not encode general quantifier as an extended" +
                           "quantifier: " + f)
@@ -4804,6 +4850,22 @@ private def collectVarDecls(dec                    : Dec,
               }
             // todo: support for extracting existential quantifiers to be
             //  used for instrumentation
+          }
+        }
+        case Eq(ISortedEpsilon(_,ISortedQuantified(Quantifier.ALL, _, // \\numof
+          ITrigger(_, Eq(_, ITermITE(subf,_,_))))), rhs) =>
+          subf match {
+            case Disj(fRange, pred) =>
+              fRange match {
+                case INot(Conj(flo, fhi)) => extractInfo(flo, fhi, pred, CCNUMOF, Some(rhs))
+                case _ if TriCeraParameters.get.extGeneralQuans &&
+                  TriCeraParameters.get.onlyExtGeneralQuans =>
+                  throw new ExtendedQuantifierException(
+                    "Could not encode general quantifier as an extended" +
+                      "quantifier: " + f)
+                case _ => None
+              }
+            case _ => None
           }
         case _ => None
       }

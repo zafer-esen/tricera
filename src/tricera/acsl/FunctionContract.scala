@@ -32,6 +32,7 @@ package tricera.acsl
 
 import ap.parser.IFormula
 import tricera.Util.SourceInfo
+import tricera.concurrency.ccreader.CCFormula
 
 trait ParsedAnnotation
 
@@ -52,7 +53,7 @@ class FunctionContract(
   }
 }
 
-case class StatementAnnotation(f        : IFormula,
+case class StatementAnnotation(f        : CCFormula,
                                isAssert : Boolean) extends ParsedAnnotation
 
-case class LoopAnnotation(invariant : IFormula) extends ParsedAnnotation
+case class LoopAnnotation(invariant : CCFormula) extends ParsedAnnotation

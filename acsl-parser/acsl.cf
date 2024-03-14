@@ -121,6 +121,9 @@ ENaming2.    Expr ::= String ":" Expr ;
 -- binding (left)
 EForAll.     Expr2 ::= "\\forall" [Binder] ";" Expr2 ;
 EExists.     Expr2 ::= "\\exists" [Binder] ";" Expr2 ;
+ENumOf.      Expr2 ::= "\\numof"  [Binder] ";" Expr2 ;
+-- todo: sum, min, max, prod
+ELambda.     Expr2 ::= "\\lambda" [Binder] ";" Expr2 ;
 EBinding.    Expr2 ::= "\\let" Id "=" Expr2 ";" Expr ;
 
 -- ternary connective (right)
