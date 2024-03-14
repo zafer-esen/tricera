@@ -303,7 +303,7 @@ class TriCeraParameters extends GlobalParameters {
     |-h, --help         Show this information
     |-v, --version      Print version number
     |-arithMode:t       Integer semantics: math (default), ilp32, lp64, llp64
-    |-mathArrays:t      Use mathematical arrays for modeling program arrays (ignores memsafety properties)
+    |-mathArrays        Use mathematical arrays for modeling program arrays (ignores memsafety properties)
     |-exq               Use extended quantifier encoding for forall and exists when possible 
     |-onlyExq           Report error if extended quantifier encoding cannot be used for all quantified formulas
     |-t:time            Set timeout (in seconds)

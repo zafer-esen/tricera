@@ -4525,7 +4525,8 @@ private def collectVarDecls(dec                    : Dec,
                           (ghostHi: ITerm, hi: ITerm, p : ITerm) =>
                             ite(expr2Formula(p), ghostHi <= hi, ghostHi >= hi)
                             // true for the smaller range
-                      }))
+                      }),
+                      alienConstants = info.alienConstants.map(_.c))
                     TheoryRegistry register extQuan
                     val doNotResetWithinBoundsCondition = info.quantifier match {
                       case Quantifier.ALL =>
@@ -4537,7 +4538,7 @@ private def collectVarDecls(dec                    : Dec,
                       extQuan -> new BooleanInstrumentationOperator(
                         extQuan, doNotResetWithinBoundsCondition)
                     val morphismApp = IFunApp(extQuan.morphism,
-                      Seq(info.arrayTerm, info.lo, info.hi) ++ info.alienTerms)
+                      Seq(info.arrayTerm, info.lo, info.hi) ++ info.alienConstants)
                     stmSymex.assertProperty(
                       expr2Formula(morphismApp),
                       srcInfo = Some(getSourceInfo(stm)),
@@ -4634,7 +4635,7 @@ private def collectVarDecls(dec                    : Dec,
                                              arrayAccess : IFunApp,
                                              arrayIndex : ITerm,
                                              arrayTheory : ExtArray,
-                                             alienTerms : Seq[ITerm],
+                                             alienConstants : Seq[IConstant],
                                              originalF : IFormula)
     /**
      * Given a quantified formula, tries to extract ranges and the predicate.
@@ -4750,7 +4751,7 @@ private def collectVarDecls(dec                    : Dec,
           val lo = maybeLo.get
           val hi = maybeHi.get
           val Seq(arrayTerm, arrayIndex) = select.args
-          val alienTerms =
+          val alienConstants =
             SymbolCollector.constantsSorted(pred).map(IConstant) diff select.args
           Some(QuantifiedFormulaInfo(
             quantifier = quan,
@@ -4761,7 +4762,7 @@ private def collectVarDecls(dec                    : Dec,
             arrayAccess = select,
             arrayIndex = arrayIndex,
             arrayTheory = theory,
-            alienTerms = alienTerms,
+            alienConstants = alienConstants,
             originalF = f))
         } else if (TriCeraParameters.get.onlyExtGeneralQuans) {
           throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
