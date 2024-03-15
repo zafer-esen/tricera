@@ -4575,7 +4575,7 @@ private def collectVarDecls(dec                    : Dec,
                     val morphismApp = IFunApp(extQuan.morphism,
                       Seq(info.arrayTerm, info.lo, info.hi) ++ info.alienConstants)
                     stmSymex.assertProperty(
-                      morphismApp === info.rhs.get,
+                      info.makeNumofFormula.get(morphismApp),
                       srcInfo = Some(getSourceInfo(stm)),
                       properties.Reachability)
                   case Some(info) if !(info.quantifier == CCALL ||
@@ -4676,7 +4676,7 @@ private def collectVarDecls(dec                    : Dec,
                                              arrayIndex : ITerm,
                                              arrayTheory : ExtArray,
                                              alienConstants : Seq[IConstant],
-                                             rhs : Option[ITerm], // only used when this is \\numof
+                                             makeNumofFormula : Option[ITerm => IFormula], // only used when this is \\numof
                                              originalF : CCFormula)
     /**
      * Given a quantified formula, tries to extract ranges and the predicate.
@@ -4699,7 +4699,7 @@ private def collectVarDecls(dec                    : Dec,
                       fhi: IFormula,
                       pred: IFormula,
                       quan: CCQuantifier,
-                      rhs : Option[ITerm] = None) : // rhs of numof, optional
+                      toNumofFormula : Option[ITerm => IFormula] = None) : //if passed the numof morphism, should build the full numof formula
       Option[QuantifiedFormulaInfo] = {
         // try to extract the lo term
         val maybeLo = flo match {
@@ -4809,7 +4809,7 @@ private def collectVarDecls(dec                    : Dec,
             arrayTheory = theory,
             alienConstants = alienConstants,
             originalF = f,
-            rhs = rhs)) // todo
+            makeNumofFormula = toNumofFormula)) // todo
         } else if (TriCeraParameters.get.onlyExtGeneralQuans) {
           throw new ExtendedQuantifierException("Could not encode general quantifier as an " +
             "extended quantifier: " + f)
@@ -4852,21 +4852,41 @@ private def collectVarDecls(dec                    : Dec,
             //  used for instrumentation
           }
         }
-        case Eq(ISortedEpsilon(_,ISortedQuantified(Quantifier.ALL, _, // \\numof
-          ITrigger(_, Eq(_, ITermITE(subf,_,_))))), rhs) =>
-          subf match {
-            case Disj(fRange, pred) =>
-              fRange match {
-                case INot(Conj(flo, fhi)) => extractInfo(flo, fhi, pred, CCNUMOF, Some(rhs))
-                case _ if TriCeraParameters.get.extGeneralQuans &&
-                  TriCeraParameters.get.onlyExtGeneralQuans =>
-                  throw new ExtendedQuantifierException(
-                    "Could not encode general quantifier as an extended" +
-                      "quantifier: " + f)
+        case Geq(_,_) | Eq(_,_)  => // todo: brittle implementation, fix this and generalize to any expression
+          val (numofApp, toNumofFormula: (ITerm => IFormula)) = f.toFormula match {
+            case Geq(lhs, rhs) if lhs.isInstanceOf[IEpsilon] =>
+              val geqFunction: (ITerm => IFormula) = morphismApp => morphismApp >= rhs
+              (lhs, geqFunction)
+            case Geq(lhs, rhs) if rhs.isInstanceOf[IEpsilon] =>
+              val geqFunction: (ITerm => IFormula) = morphismApp => lhs >= morphismApp
+              (rhs, geqFunction)
+            case Eq(lhs, rhs) if lhs.isInstanceOf[IEpsilon] =>
+              val eqFunction: (ITerm => IFormula) = morphismApp => morphismApp === rhs
+              (lhs, eqFunction)
+            case Eq(lhs, rhs) if rhs.isInstanceOf[IEpsilon] =>
+              val eqFunction: (ITerm => IFormula) = morphismApp => morphismApp === lhs
+              (rhs, eqFunction)
+          }
+          numofApp match {
+            case ISortedEpsilon(_, ISortedQuantified(Quantifier.ALL, _, // \\numof
+            ITrigger(_, Eq(_, ITermITE(subf, _, _))))) =>
+              subf match {
+                case Disj(fRange, pred) =>
+                  fRange match {
+                    case INot(Conj(flo, fhi)) =>
+                      extractInfo(flo, fhi, pred, CCNUMOF, Some(toNumofFormula))
+                    case _ if TriCeraParameters.get.extGeneralQuans &&
+                      TriCeraParameters.get.onlyExtGeneralQuans =>
+                      throw new ExtendedQuantifierException(
+                        "Could not encode general quantifier as an extended" +
+                          "quantifier: " + f)
+                    case _ => None
+                  }
                 case _ => None
               }
             case _ => None
           }
+
         case _ => None
       }
     }
